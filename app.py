@@ -1,6 +1,5 @@
 from flask import Flask, request
 from telegram import Bot
-import asyncio
 import os
 
 app = Flask(__name__)
@@ -18,46 +17,43 @@ TOPIC_IDS = {
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Webhook endpoint (asenkron, hata yakalama ile)
+# Webhook endpoint (senkron versiyon)
 @app.route('/webhook', methods=['POST'])
-async def webhook():
-    try:
-        data = request.data.decode('utf-8')  # Ham veriyi string olarak al
-        lines = data.split('\n')  # Mesajı satırlara ayır
-        message = ''  # Ana mesajı saklamak için
+def webhook():
+    data = request.data.decode('utf-8')  # Ham veriyi string olarak al
+    lines = data.split('\n')  # Mesajı satırlara ayır
+    message = ''  # Ana mesajı saklamak için
 
-        # Her satırı kontrol et
-        for line in lines:
-            line = line.strip()  # Boşlukları temizle
-            if line:  # Boş satırları atla
-                message = line  # İlk dolu satırı al
-                break  # İlk dolu satırı alıyoruz
+    # Her satırı kontrol et
+    for line in lines:
+        line = line.strip()  # Boşlukları temizle
+        if line:  # Boş satırları atla
+            message = line  # İlk dolu satırı al
+            break  # İlk dolu satırı alıyoruz
 
-        print(f"Received message: {message}")  # Debug mesajı
+    print(f"Received message: {message}")  # Debug mesajı
 
-        # Mesajda hangi konuya ait olduğunu kontrol et
-        topic_id = None
-        for topic_name, tid in TOPIC_IDS.items():
-            if topic_name.lower() in message.lower():
-                topic_id = tid
-                break
+    # Mesajda hangi konuya ait olduğunu kontrol et
+    topic_id = None
+    for topic_name, tid in TOPIC_IDS.items():
+        if topic_name.lower() in message.lower():
+            topic_id = tid
+            break
 
-        # Mesajı ilgili konuya gönder
-        if topic_id:
-            await bot.send_message(
-                chat_id=CHAT_ID,
-                text=message,
-                message_thread_id=topic_id
-            )
-            print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
-        else:
-            await bot.send_message(
-                chat_id=CHAT_ID,
-                text=f"Bilinmeyen konu: {message}"
-            )
-            print("Sent to default topic")  # Debug mesajı
-    except Exception as e:
-        print(f"Error: {e}")  # Genel hata yakalama
+    # Mesajı ilgili konuya gönder
+    if topic_id:
+        bot.send_message(
+            chat_id=CHAT_ID,
+            text=message,
+            message_thread_id=topic_id
+        )
+        print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
+    else:
+        bot.send_message(
+            chat_id=CHAT_ID,
+            text=f"Bilinmeyen konu: {message}"
+        )
+        print("Sent to default topic")  # Debug mesajı
 
     return {"status": "ok"}, 200
 
