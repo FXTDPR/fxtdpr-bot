@@ -1,5 +1,5 @@
 from flask import Flask, request
-from telegram import Bot
+from telegram import Bot, error
 import os
 
 app = Flask(__name__)
@@ -17,11 +17,20 @@ TOPIC_IDS = {
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Webhook endpoint (ham veri ile, debug ile)
+# Webhook endpoint (ham veri ile, satır satır kontrol)
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.data.decode('utf-8')  # Ham veriyi string olarak al
-    message = data  # TradingView'den gelen ham mesajı kullan
+    lines = data.split('\n')  # Mesajı satırlara ayır
+    message = ''  # Ana mesajı saklamak için
+
+    # Her satırı kontrol et
+    for line in lines:
+        line = line.strip()  # Boşlukları temizle
+        if line:  # Boş satırları atla
+            message = line  # İlk dolu satırı al, veya son satırı tercih edebilirsin
+            break  # İlk dolu satırı alıyoruz
+
     print(f"Received message: {message}")  # Debug mesajı
 
     # Mesajda hangi konuya ait olduğunu kontrol et
@@ -32,19 +41,22 @@ def webhook():
             break
 
     # Mesajı ilgili konuya gönder
-    if topic_id:
-        bot.send_message(
-            chat_id=CHAT_ID,
-            text=message,
-            message_thread_id=topic_id
-        )
-        print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
-    else:
-        bot.send_message(
-            chat_id=CHAT_ID,
-            text=f"Bilinmeyen konu: {message}"
-        )
-        print("Sent to default topic")  # Debug mesajı
+    try:
+        if topic_id:
+            bot.send_message(
+                chat_id=CHAT_ID,
+                text=message,
+                message_thread_id=topic_id
+            )
+            print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
+        else:
+            bot.send_message(
+                chat_id=CHAT_ID,
+                text=f"Bilinmeyen konu: {message}"
+            )
+            print("Sent to default topic")  # Debug mesajı
+    except error.TelegramError as e:
+        print(f"Telegram Error: {e}")  # Hata ayıklama
 
     return {"status": "ok"}, 200
 
