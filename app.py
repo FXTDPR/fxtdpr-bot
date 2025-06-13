@@ -3,6 +3,7 @@ from telegram import Bot, error
 import os
 
 app = Flask(__name__)
+app.debug = True  # Debug modunu aç
 
 # Bot ve grup bilgileri (ortam değişkenlerinden alınacak)
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
