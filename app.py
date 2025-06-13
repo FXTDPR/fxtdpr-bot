@@ -4,57 +4,18 @@ import os
 
 app = Flask(__name__)
 
-# Bot ve grup bilgileri (ortam değişkenlerinden alınacak)
+# Bot ve grup bilgileri
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
-TOPIC_IDS = {
-    "Duble Rsi": 10,
-    "Long Short Pro Fast": 8,
-    "My Asistant": 6,
-    "Out Side Bar": 4,
-    "SMC PRO": 2
-}
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Webhook endpoint (senkron versiyon)
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    data = request.data.decode('utf-8')  # Ham veriyi string olarak al
-    lines = data.split('\n')  # Mesajı satırlara ayır
-    message = ''  # Ana mesajı saklamak için
-
-    # Her satırı kontrol et
-    for line in lines:
-        line = line.strip()  # Boşlukları temizle
-        if line:  # Boş satırları atla
-            message = line  # İlk dolu satırı al
-            break  # İlk dolu satırı alıyoruz
-
-    print(f"Received message: {message}")  # Debug mesajı
-
-    # Mesajda hangi konuya ait olduğunu kontrol et
-    topic_id = None
-    for topic_name, tid in TOPIC_IDS.items():
-        if topic_name.lower() in message.lower():
-            topic_id = tid
-            break
-
-    # Mesajı ilgili konuya gönder
-    if topic_id:
-        bot.send_message(
-            chat_id=CHAT_ID,
-            text=message,
-            message_thread_id=topic_id
-        )
-        print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
-    else:
-        bot.send_message(
-            chat_id=CHAT_ID,
-            text=f"Bilinmeyen konu: {message}"
-        )
-        print("Sent to default topic")  # Debug mesajı
-
+    data = request.data.decode('utf-8')
+    print(f"Received data: {data}")  # Ham veriyi logla
+    bot.send_message(chat_id=CHAT_ID, text=data)  # Doğrudan mesaj gönder
+    print("Message sent to chat")  # Gönderim logu
     return {"status": "ok"}, 200
 
 if __name__ == "__main__":
