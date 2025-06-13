@@ -1,6 +1,5 @@
 from flask import Flask, request
 from telegram import Bot
-import asyncio
 import os
 
 app = Flask(__name__)
@@ -18,29 +17,28 @@ TOPIC_IDS = {
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Webhook endpoint
+# Webhook endpoint (senkron versiyon)
 @app.route('/webhook', methods=['POST'])
-async def webhook():
-    data = request.json
+def webhook():
+    data = request.get_json()
     message = data.get('message', '')
 
     # Mesajda hangi konuya ait olduğunu kontrol et
     topic_id = None
     for topic_name, tid in TOPIC_IDS.items():
-        if topic_name.lower() in message.lower():  # Büyük/küçük harfe duyarsız kontrol
+        if topic_name.lower() in message.lower():
             topic_id = tid
             break
 
     # Mesajı ilgili konuya gönder
     if topic_id:
-        await bot.send_message(
+        bot.send_message(
             chat_id=CHAT_ID,
             text=message,
             message_thread_id=topic_id
         )
     else:
-        # Bilinmeyen konu için genel mesaj
-        await bot.send_message(
+        bot.send_message(
             chat_id=CHAT_ID,
             text=f"Bilinmeyen konu: {message}"
         )
