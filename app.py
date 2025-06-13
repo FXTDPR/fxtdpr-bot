@@ -1,9 +1,9 @@
 from flask import Flask, request
-from telegram import Bot, error
+from telegram import Bot
+import asyncio
 import os
 
 app = Flask(__name__)
-app.debug = True  # Debug modunu aç
 
 # Bot ve grup bilgileri (ortam değişkenlerinden alınacak)
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
@@ -18,9 +18,9 @@ TOPIC_IDS = {
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Webhook endpoint (ham veri ile, debug ile)
+# Webhook endpoint (asenkron)
 @app.route('/webhook', methods=['POST'])
-def webhook():
+async def webhook():
     data = request.data.decode('utf-8')  # Ham veriyi string olarak al
     lines = data.split('\n')  # Mesajı satırlara ayır
     message = ''  # Ana mesajı saklamak için
@@ -42,22 +42,19 @@ def webhook():
             break
 
     # Mesajı ilgili konuya gönder
-    try:
-        if topic_id:
-            bot.send_message(
-                chat_id=CHAT_ID,
-                text=message,
-                message_thread_id=topic_id
-            )
-            print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
-        else:
-            bot.send_message(
-                chat_id=CHAT_ID,
-                text=f"Bilinmeyen konu: {message}"
-            )
-            print("Sent to default topic")  # Debug mesajı
-    except error.TelegramError as e:
-        print(f"Telegram Error: {e}")  # Hata ayıklama
+    if topic_id:
+        await bot.send_message(
+            chat_id=CHAT_ID,
+            text=message,
+            message_thread_id=topic_id
+        )
+        print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
+    else:
+        await bot.send_message(
+            chat_id=CHAT_ID,
+            text=f"Bilinmeyen konu: {message}"
+        )
+        print("Sent to default topic")  # Debug mesajı
 
     return {"status": "ok"}, 200
 
