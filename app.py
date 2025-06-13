@@ -17,11 +17,12 @@ TOPIC_IDS = {
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Webhook endpoint (ham veri ile)
+# Webhook endpoint (ham veri ile, debug ile)
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.data.decode('utf-8')  # Ham veriyi string olarak al
     message = data  # TradingView'den gelen ham mesajı kullan
+    print(f"Received message: {message}")  # Debug mesajı
 
     # Mesajda hangi konuya ait olduğunu kontrol et
     topic_id = None
@@ -37,11 +38,13 @@ def webhook():
             text=message,
             message_thread_id=topic_id
         )
+        print(f"Sent to topic_id: {topic_id}")  # Debug mesajı
     else:
         bot.send_message(
             chat_id=CHAT_ID,
             text=f"Bilinmeyen konu: {message}"
         )
+        print("Sent to default topic")  # Debug mesajı
 
     return {"status": "ok"}, 200
 
