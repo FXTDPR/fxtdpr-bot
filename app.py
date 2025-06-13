@@ -17,7 +17,7 @@ TOPIC_IDS = {
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Webhook endpoint (ham veri ile, satır satır kontrol)
+# Webhook endpoint (ham veri ile, debug ile)
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.data.decode('utf-8')  # Ham veriyi string olarak al
@@ -28,7 +28,7 @@ def webhook():
     for line in lines:
         line = line.strip()  # Boşlukları temizle
         if line:  # Boş satırları atla
-            message = line  # İlk dolu satırı al, veya son satırı tercih edebilirsin
+            message = line  # İlk dolu satırı al
             break  # İlk dolu satırı alıyoruz
 
     print(f"Received message: {message}")  # Debug mesajı
