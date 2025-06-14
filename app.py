@@ -33,25 +33,30 @@ def health_check():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    print("Webhook received - Headers:", request.headers)
+    print("Webhook received - Headers:", dict(request.headers))
     print("Webhook received - Raw data:", request.get_data().decode('utf-8'))
     try:
-        data = request.get_json(force=True)
+        data = request.get_json(force=True, silent=True)
         print("Parsed JSON data:", data)
         if data:
             raw_message = str(data)
             print(f"Sending raw message: {raw_message}")
-            send_telegram_message(CHAT_ID, "0", raw_message)
+            send_telegram_message(CHAT_ID, "0", raw_message)  # Genel gruba ham veri
             try:
                 json_message = json.dumps(data, ensure_ascii=False)
                 print(f"Sending JSON message: {json_message}")
+                # Konu anahtarlarını kontrol et
                 for thread_id, topic in TOPICS.items():
-                    if topic.lower() in raw_message.lower() or f"#{topic.lower()}" in raw_message.lower():
+                    if data.get(f"#{topic.lower()}", False) or (isinstance(data.get('#outside', False), bool) and data.get('#outside')):
                         send_telegram_message(CHAT_ID, thread_id, json_message)
             except Exception as e:
                 print(f"JSON error: {e}")
             return jsonify({"status": "success"}), 200
-        return jsonify({"status": "error", "message": "No data"}), 400
+        else:
+            print("No valid JSON data, using raw data")
+            raw_data = request.get_data().decode('utf-8')
+            send_telegram_message(CHAT_ID, "0", raw_data)
+            return jsonify({"status": "success", "message": "Processed as raw data"}), 200
     except Exception as e:
         print(f"Parse error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 400
