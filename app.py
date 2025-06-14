@@ -45,10 +45,14 @@ def webhook():
             try:
                 json_message = json.dumps(data, ensure_ascii=False)
                 print(f"Sending JSON message: {json_message}")
-                # Konu anahtarlarını kontrol et
+                # Spesifik konu filtresi
+                topic_match = False
                 for thread_id, topic in TOPICS.items():
-                    if data.get(f"#{topic.lower()}", False) or (isinstance(data.get('#outside', False), bool) and data.get('#outside')):
+                    if data.get(f"#{topic.lower()}") is True:
+                        topic_match = True
                         send_telegram_message(CHAT_ID, thread_id, json_message)
+                if not topic_match and data.get('#outside'):
+                    send_telegram_message(CHAT_ID, "4", json_message)  # Varsayılan #outside
             except Exception as e:
                 print(f"JSON error: {e}")
             return jsonify({"status": "success"}), 200
