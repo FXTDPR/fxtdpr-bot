@@ -4,6 +4,7 @@ import os
 import threading
 import time
 import json
+import re
 
 app = Flask(__name__)
 
@@ -38,30 +39,41 @@ def webhook():
     try:
         data = request.get_json(force=True, silent=True)
         print("Parsed JSON data:", data)
-        if data:
-            # Okunabilir metin formatı
-            formatted_message = f"*{data.get('ticker', 'Unknown')} {data.get('interval', 'Unknown')} Sinyali*\n" \
-                              f"Fiyat: {data.get('price', 'Unknown')}\n" \
-                              f"Detay: {data.get('detail', 'Unknown')}"
+        raw_data = request.get_data().decode('utf-8')  # TradingView ham metni
+        if data or raw_data:
+            # TradingView ham metnini parse et
+            if raw_data:
+                match = re.match(r"\*(.+?) (\d+) Sinyali\* Fiyat: (\d+\.\d+) Detay: (.+?) Recommended: Entry: (\d+\.\d+) T1: (\d+\.\d+) T2: (\d+\.\d+) SL: (\d+\.\d+) #(.+)", raw_data)
+                if match:
+                    ticker, interval, price, detail, entry, t1, t2, sl, topic = match.groups()
+                    formatted_message = f"*{ticker} {interval} Sinyali*\n" \
+                                      f"Fiyat: {price}\n" \
+                                      f"Detay: {detail}\n" \
+                                      f"Recommended: Entry: {entry}\n" \
+                                      f"T1: {t1}\n" \
+                                      f"T2: {t2}\n" \
+                                      f"SL: {sl}"
+                else:
+                    formatted_message = raw_data  # Parse edilemezse ham hali
+            elif data:
+                formatted_message = f"*{data.get('ticker', 'Unknown')} {data.get('interval', 'Unknown')} Sinyali*\n" \
+                                  f"Fiyat: {data.get('price', 'Unknown')}\n" \
+                                  f"Detay: {data.get('detail', 'Unknown')}"
             print(f"Sending formatted message: {formatted_message}")
             topic_match = False
             try:
-                json_message = json.dumps(data, ensure_ascii=False)
-                print(f"Sending JSON message: {json_message}")
-                for thread_id, topic in TOPICS.items():
-                    if data.get(f"#{topic.lower()}") is True:
+                for thread_id, topic_name in TOPICS.items():
+                    if topic == topic_name.lower() or data and data.get(f"#{topic_name.lower()}") is True:
                         topic_match = True
-                        send_telegram_message(CHAT_ID, thread_id, formatted_message)  # Düzenli metni gönder
-                if not topic_match and data.get('#outside'):
-                    send_telegram_message(CHAT_ID, "4", formatted_message)  # Varsayılan #outside
+                        send_telegram_message(CHAT_ID, thread_id, formatted_message)
+                if not topic_match and (data and data.get('#outside') or topic == 'outside'):
+                    send_telegram_message(CHAT_ID, "4", formatted_message)
             except Exception as e:
                 print(f"JSON error: {e}")
             return jsonify({"status": "success"}), 200
         else:
-            print("No valid JSON data, using raw data")
-            raw_data = request.get_data().decode('utf-8')
-            send_telegram_message(CHAT_ID, "0", raw_data)
-            return jsonify({"status": "success", "message": "Processed as raw data"}), 200
+            print("No valid data")
+            return jsonify({"status": "error", "message": "No data"}), 400
     except Exception as e:
         print(f"Parse error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 400
