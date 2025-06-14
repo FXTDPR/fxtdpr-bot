@@ -33,11 +33,11 @@ def health_check():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    print("Webhook received - Headers:", request.headers)  # Header'ları logla
-    print("Webhook received - Raw data:", request.get_data())  # Ham veriyi logla
+    print("Webhook received - Headers:", request.headers)
+    print("Webhook received - Raw data:", request.get_data().decode('utf-8'))
     try:
         data = request.get_json(force=True)
-        print("Parsed JSON data:", data)  # Parse edilen veriyi logla
+        print("Parsed JSON data:", data)
         if data:
             raw_message = str(data)
             print(f"Sending raw message: {raw_message}")
