@@ -39,20 +39,17 @@ def webhook():
     try:
         data = request.get_json(force=True, silent=True)
         print("Parsed JSON data:", data)
-        raw_data = request.get_data().decode('utf-8')  # TradingView ham metni
+        raw_data = request.get_data().decode('utf-8')
         if data or raw_data:
-            # TradingView ham metnini parse et
             if raw_data:
-                match = re.match(r"\*(.+?) (\d+) Sinyali\* Fiyat: (\d+\.\d+) Detay: (.+?) Recommended: Entry: (\d+\.\d+) T1: (\d+\.\d+) T2: (\d+\.\d+) SL: (\d+\.\d+) #(.+)", raw_data)
+                # Yeni format için regex
+                match = re.match(r"#(.+?)\s*:\s*(\d+)\nAlarm Türü: (.+?)\nKapanış Fiyatı: (\d+\.\d+)(?:\n(.+))?", raw_data, re.DOTALL)
                 if match:
-                    ticker, interval, price, detail, entry, t1, t2, sl, topic = match.groups()
+                    ticker, interval, detail, price, extra = match.groups() if match.groups()[-1] else (match.groups()[:-1] + ('',))
                     formatted_message = f"*{ticker} {interval} Sinyali*\n" \
                                       f"Fiyat: {price}\n" \
                                       f"Detay: {detail}\n" \
-                                      f"Recommended: Entry: {entry}\n" \
-                                      f"T1: {t1}\n" \
-                                      f"T2: {t2}\n" \
-                                      f"SL: {sl}"
+                                      f"Ekstra: {extra.strip() if extra else 'Yok'}"
                 else:
                     formatted_message = raw_data  # Parse edilemezse ham hali
             elif data:
@@ -63,10 +60,10 @@ def webhook():
             topic_match = False
             try:
                 for thread_id, topic_name in TOPICS.items():
-                    if topic == topic_name.lower() or data and data.get(f"#{topic_name.lower()}") is True:
+                    if topic_name.lower() in raw_data.lower() or (match and ticker.lower() == topic_name.lower()):
                         topic_match = True
                         send_telegram_message(CHAT_ID, thread_id, formatted_message)
-                if not topic_match and (data and data.get('#outside') or topic == 'outside'):
+                if not topic_match and ('#outside' in raw_data.lower() or data and data.get('#outside')):
                     send_telegram_message(CHAT_ID, "4", formatted_message)
             except Exception as e:
                 print(f"JSON error: {e}")
