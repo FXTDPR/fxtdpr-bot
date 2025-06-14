@@ -17,7 +17,7 @@ TOPICS = {
     "8": "Long Short",
     "10": "Duble Rsi"
 }
-PING_URL = "https://your-render-app.onrender.com/webhook"  # Deploy sonrası Render URL'sini buraya güncelle
+PING_URL = "https://tradingview-bot-b8jr.onrender.com/webhook"  # Deploy sonrası Render URL'sini buraya güncelle
 
 # Botu uyandırmak için ping mekanizması
 def keep_alive():
