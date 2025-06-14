@@ -39,21 +39,21 @@ def webhook():
         data = request.get_json(force=True, silent=True)
         print("Parsed JSON data:", data)
         if data:
-            raw_message = str(data)
-            print(f"Raw message: {raw_message}")
+            # Okunabilir metin formatı
+            formatted_message = f"*{data.get('ticker', 'Unknown')} {data.get('interval', 'Unknown')} Sinyali*\n" \
+                              f"Fiyat: {data.get('price', 'Unknown')}\n" \
+                              f"Detay: {data.get('detail', 'Unknown')}"
+            print(f"Sending formatted message: {formatted_message}")
             topic_match = False
             try:
                 json_message = json.dumps(data, ensure_ascii=False)
-                print(f"JSON message: {json_message}")
-                # Konu filtresi
+                print(f"Sending JSON message: {json_message}")
                 for thread_id, topic in TOPICS.items():
                     if data.get(f"#{topic.lower()}") is True:
                         topic_match = True
-                        send_telegram_message(CHAT_ID, thread_id, json_message)
+                        send_telegram_message(CHAT_ID, thread_id, formatted_message)  # Düzenli metni gönder
                 if not topic_match and data.get('#outside'):
-                    send_telegram_message(CHAT_ID, "4", json_message)  # Varsayılan #outside
-                elif not topic_match:
-                    send_telegram_message(CHAT_ID, "0", raw_message)  # Sadece konu yoksa genel
+                    send_telegram_message(CHAT_ID, "4", formatted_message)  # Varsayılan #outside
             except Exception as e:
                 print(f"JSON error: {e}")
             return jsonify({"status": "success"}), 200
